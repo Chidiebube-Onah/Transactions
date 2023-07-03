@@ -7,13 +7,13 @@ namespace Transactions.Services.Implementation;
 
 public class CryptoApiClient : ICryptoApiClient
 {
-    private readonly ILogger _logger;
+    
     private readonly HttpClient _httpClient;
 
     
-    public CryptoApiClient(ILogger logger, HttpClient httpClient)
+    public CryptoApiClient(HttpClient httpClient)
     {
-        _logger = logger;
+        
         _httpClient = httpClient;
         
     }
@@ -26,19 +26,19 @@ public class CryptoApiClient : ICryptoApiClient
           
         // Example implementation:
        
-        var transactionsTemplate = $"?transactionhash={transactionHash}&walletaddress={walletAddress}&currency={currencyType}";
+        string transactionsTemplate = $"?transactionhash={transactionHash}&walletaddress={walletAddress}&currency={currencyType}";
 
         try
         {
-            var response = await _httpClient.GetAsync(transactionsTemplate);
+            HttpResponseMessage response = await _httpClient.GetAsync(transactionsTemplate);
             response.EnsureSuccessStatusCode();
 
-            var content = await response.Content.ReadAsStringAsync();
-            var transaction = JsonConvert.DeserializeObject<TransactionResponse>(content);
-
+            string content = await response.Content.ReadAsStringAsync();
+            TransactionResponse? transaction = JsonConvert.DeserializeObject<TransactionResponse>(content);
+    
             return (transaction, true);
         }
-        catch (Exception ex)
+        catch (HttpRequestException ex)
         {
            
             Log.Error($"An error occurred while retrieving transactions from the crypto API: {ex.Message}");

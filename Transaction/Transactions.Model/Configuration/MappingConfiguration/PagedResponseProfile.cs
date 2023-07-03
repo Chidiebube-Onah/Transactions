@@ -16,10 +16,10 @@ public class PagedResponseProfile : Profile
     {
         public PagedResponse<TDestination> Convert(PagedList<TSource> source, PagedResponse<TDestination> destination, ResolutionContext context)
         {
-            var list = source.ToList();
-            var items = context.Mapper.Map<IEnumerable<TSource>, IEnumerable<TDestination>>(list);
+            List<TSource> list = source.ToList();
+            IEnumerable<TDestination>? items = context.Mapper.Map<IEnumerable<TSource>, IEnumerable<TDestination>>(list);
 
-            var pagedResponse = new PagedResponse<TDestination>
+            PagedResponse<TDestination> pagedResponse = new PagedResponse<TDestination>
             {
                 MetaData = source.MetaData,
                 Items = items

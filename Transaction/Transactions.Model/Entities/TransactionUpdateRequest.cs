@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using Transactions.Model.Enums;
 
 namespace Transactions.Model.Entities;
@@ -7,6 +8,7 @@ public class TransactionUpdateRequest
 {
 
     [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public string RequestId { get; set; }
     public string ClientId { get; set; }
     public RequestStatus Status { get; set; }

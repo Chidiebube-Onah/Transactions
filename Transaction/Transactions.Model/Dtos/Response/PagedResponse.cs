@@ -27,8 +27,8 @@ namespace Transactions.Model.Dtos.Response
 
         public static PagedList<T> ToPagedList(IEnumerable<T> source, int pageNumber, int pageSize)
         {
-            var count = source.Count();
-            var items = source
+            int count = source.Count();
+            List<T> items = source
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize).ToList();
 

@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using SchMgr_FUPRE.Data.Implementation;
 using Transactions.Data.Interfaces;
 
 namespace Transactions.Data.Implementation
@@ -18,7 +17,7 @@ namespace Transactions.Data.Implementation
         {
             if (_repositories == null) _repositories = new Dictionary<Type, object>();
 
-            var type = typeof(TEntity);
+            Type type = typeof(TEntity);
             if (!_repositories.ContainsKey(type)) _repositories[type] = new Repository<TEntity>(_context);
             return (IRepository<TEntity>)_repositories[type];
         }

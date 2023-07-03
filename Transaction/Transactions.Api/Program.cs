@@ -1,3 +1,4 @@
+using System.Net;
 using System.Reflection;
 using System.Text.Json.Serialization;
 using MassTransit;
@@ -15,11 +16,12 @@ using Transactions.Logger;
 using Transactions.Services.Extensions;
 using Transactions.Services.Handlers;
 using Transactions.Services.Implementation;
+using Transactions.Services.Infrastructure;
 using Transactions.Services.Interfaces;
 
 
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseSerilog();
 // Add services to the container.
 
@@ -45,9 +47,16 @@ builder.Services.AddDbContext<TransactionsDbContext>(options =>
 
 });
 
+
+
+builder.Services.Configure<MessageQueueConfig>(builder.Configuration.GetSection($"{nameof(MessageQueueConfig)}"));
+
+MessageQueueConfig messageConfig = builder.Configuration.GetSection($"{nameof(MessageQueueConfig)}").Get<MessageQueueConfig>();
+
+string clientBaseUri = builder.Configuration.GetSection("ClientBaseUri").Value;
 //Add automapper
 builder.Services.AddAutoMapper(Assembly.Load("Transactions.Model"));
-
+builder.Services.AddSingleton<MessageQueueConfig>();
 builder.Services.RegisterServices();
 builder.Services.AddHostedService<LifetimeEventsHostedService>();
 builder.Services.AddHttpContextAccessor();
@@ -105,14 +114,13 @@ builder.Services.AddSwaggerGen(c =>
         Policy<HttpResponseMessage>
             .Handle<HttpRequestException>()
             .OrTransientHttpStatusCode()
+            .OrResult(msg => msg.StatusCode == HttpStatusCode.ServiceUnavailable || msg.StatusCode == HttpStatusCode.InternalServerError)
             .CircuitBreakerAsync(5, TimeSpan.FromMinutes(1));
 
 builder.Services.AddHttpClient<ICryptoApiClient, CryptoApiClient>()
-    .AddPolicyHandler(request =>
-        
-        circuitBreakerPolicy
-            )
-    .ConfigureHttpClient(c => c.BaseAddress = new Uri("https://api.crypto.com/transactions"));
+    .AddPolicyHandler(circuitBreakerPolicy)
+    .ConfigureHttpClient(c => c.BaseAddress = new Uri(clientBaseUri));
+
 
 
 builder.Services.AddMassTransit(x =>
@@ -121,13 +129,13 @@ builder.Services.AddMassTransit(x =>
 
     x.AddBus(provider => Bus.Factory.CreateUsingRabbitMq(cfg =>
     {
-        cfg.Host("rabbitmq://localhost", h =>
+        cfg.Host(messageConfig.Server, h =>
         {
-            h.Username("guest");
-            h.Password("guest");
+            h.Username(messageConfig.Username);
+            h.Password(messageConfig.Password);
         });
 
-        cfg.ReceiveEndpoint("UpdateTransactions", ep =>
+        cfg.ReceiveEndpoint(messageConfig.Queue, ep =>
         {
             ep.PrefetchCount = 16;
             ep.UseMessageRetry(r => r.Interval(2, 100));
@@ -137,7 +145,7 @@ builder.Services.AddMassTransit(x =>
 });
 
 
-var app = builder.Build();
+WebApplication app = builder.Build();
 
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(app.Services.GetService<IConfiguration>())
@@ -148,16 +156,15 @@ Log.Logger = new LoggerConfiguration()
 
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI(
-        c =>
-        {
-            c.SwaggerEndpoint("/swagger/v1/swagger.json", "Transactions Micro-service v1");
-        }
-    );
-}
+
+
+app.UseSwagger();
+app.UseSwaggerUI(
+    c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Transactions Micro-service v1");
+    });
+
 
 app.UseSerilogRequestLogging(opts
     => opts.EnrichDiagnosticContext = LogEnricher.EnrichFromRequest);

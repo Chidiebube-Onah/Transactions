@@ -21,4 +21,4 @@ RUN dotnet publish "CryptoClient.Api.csproj" -c Release -o /app/publish /p:UseAp
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "CryptoClient.Api.dll"]
+ENTRYPOINT ["dotnet", "CryptoClient.Api.dll", "--launch-profile", "CryptoClient.Api"]

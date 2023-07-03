@@ -23,7 +23,7 @@ namespace Transactions.Services.Handlers
                     IExceptionHandlerFeature? exceptionHandleFeature = context.Features.Get<IExceptionHandlerFeature>();
                     if (exceptionHandleFeature != null)
                     {
-                        var status = ResponseStatus.FATAL_ERROR;
+                        ResponseStatus status = ResponseStatus.FATAL_ERROR;
                         switch (exceptionHandleFeature.Error)
                         {
                             //More Exceptions can be added as they are identified, those that aren't identified will default to the 500 status code 
@@ -47,7 +47,7 @@ namespace Transactions.Services.Handlers
                                 ? "We currently cannot complete this request process. Please retry or contact our support"
                                 : exceptionHandleFeature.Error.Message;
 
-                        var serializerSettings = new JsonSerializerSettings();
+                        JsonSerializerSettings serializerSettings = new JsonSerializerSettings();
                         serializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
                         string msg =  JsonConvert.SerializeObject(err, serializerSettings);
                         await context.Response.WriteAsync(msg);

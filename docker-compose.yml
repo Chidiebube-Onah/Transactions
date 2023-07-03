@@ -1,20 +1,34 @@
 version: '3'
 services:
-  web1:
+  transaction:
     build: ./Transaction
     ports:
       - "8000:80"
-  web2:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+    depends_on:
+      - rabbitmq
+      - db
+  client:
     build: ./Client
     ports:
       - "8001:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+    depends_on:
+      - rabbitmq
   db:
     image: "mcr.microsoft.com/mssql/server"
-    environment:
-      SA_PASSWORD: "ChangeIt"
-      ACCEPT_EULA: "Y"
-  rabbitmq:
-    image: "rabbitmq:3-management"
     ports:
-      - "15672:15672"
+    - "1433:1433"
+
+    environment:
+      SA_PASSWORD: "9#Jk$5@p2!Lq"
+      ACCEPT_EULA: "Y"
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    hostname: my-rabbitmq-server
+    ports:
       - "5672:5672"
+      - "15672:15672"

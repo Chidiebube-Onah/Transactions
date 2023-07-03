@@ -13,7 +13,7 @@ public class TransactionResponse
     public decimal Amount { get; set; }
     public string Network { get; set; }
     public string Currency { get; set; }
-    public long TransactionTimeStamp { get; set; }
+    public DateTime TransactionTimeStamp { get; set; }
     public string Reference { get; set; }
     public DateTime CreatedAt { get; set; }
 }

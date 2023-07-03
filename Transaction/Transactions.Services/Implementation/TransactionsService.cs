@@ -31,7 +31,7 @@ public class TransactionsService : ITransactionsService
 
     public async Task<PagedResponse<TransactionResponse>> GetTransactions(TransactionRequestParams request)
     {
-        var transactions = !string.IsNullOrWhiteSpace(request.SearchTerm)
+        PagedList<Transaction> transactions = !string.IsNullOrWhiteSpace(request.SearchTerm)
 
             ? await _transactionsRepository.GetPagedItems(request,
                 t => (string.IsNullOrEmpty(request.Currency) || t.Currency == request.Currency)
@@ -52,7 +52,7 @@ public class TransactionsService : ITransactionsService
                      && (request.StartTimeStamp == null || t.TransactionTimeStamp >= request.StartTimeStamp)
                      && (request.EndTimeStamp == null || t.TransactionTimeStamp <= request.EndTimeStamp));
 
-        var response = _mapper.Map<PagedResponse<TransactionResponse>>(transactions);
+        PagedResponse<TransactionResponse>? response = _mapper.Map<PagedResponse<TransactionResponse>>(transactions);
         return response;
     }
 
@@ -61,21 +61,25 @@ public class TransactionsService : ITransactionsService
     {
         if (await IsNewOrFailedRequest(request))
         {
-            (var newTransaction, var isSuccessful) = await _cryptoApiClient.GetTransactions(request.TransactionHash,
+            (TransactionResponse? newTransaction, bool isSuccessful) = await _cryptoApiClient.GetTransactions(request.TransactionHash,
                 currencyType: request.Currency, walletAddress: request.WalletAddress);
 
-            if (!isSuccessful) await LogNewTransactionUpdateRequest(request, RequestStatus.Failed);
+            if (!isSuccessful || newTransaction == null )
+            {
+                await LogNewTransactionUpdateRequest(request, RequestStatus.Failed);
+                return;
+            }
 
-            var isDuplicateTransaction = await TransactionExists(new UpdateTransactionsCommandRequest
+            bool isDuplicateTransaction = await TransactionExists(new UpdateTransactionsCommandRequest
             {
                 TransactionHash = newTransaction?.TransactionHash,
                 Currency = newTransaction?.Currency,
-                WalletAddress = newTransaction?.FromAddress
+                WalletAddress = newTransaction?.FromAddress,
             });
 
             if (!isDuplicateTransaction)
             {
-                var transactionToAdd = _mapper.Map<Transaction>(newTransaction);
+                Transaction? transactionToAdd = _mapper.Map<Transaction>(newTransaction);
 
                 await _transactionsRepository.AddAsync(transactionToAdd);
 
@@ -88,20 +92,23 @@ public class TransactionsService : ITransactionsService
 
     private async Task<bool> IsNewOrFailedRequest(UpdateTransactionsCommandRequest request)
     {
-        var transactionUpdateRequest = await _transactionsUpdateRequestRepository.GetSingleByAsync(r =>
+        TransactionUpdateRequest? transactionUpdateRequest = await _transactionsUpdateRequestRepository.GetSingleByAsync(r =>
             r.TransactionHash.ToLower() == request.TransactionHash.ToLower() &&
             r.ClientId.ToLower() == request.ClientId.ToLower() &&
             r.WalletAddress.ToLower() == request.WalletAddress.ToLower() &&
             r.Currency.ToLower() == request.Currency.ToLower());
 
-        if (transactionUpdateRequest?.Status == RequestStatus.Failed) return true;
+        if (transactionUpdateRequest == null || transactionUpdateRequest.Status == RequestStatus.Failed)
+        {
+            return true;
+        }
 
         return false;
     }
 
     private async Task<bool> TransactionExists(UpdateTransactionsCommandRequest request)
     {
-        var transaction = await _transactionsRepository.GetSingleByAsync(r =>
+        Transaction? transaction = await _transactionsRepository.GetSingleByAsync(r =>
             r.TransactionHash.ToLower() == request.TransactionHash.ToLower() &&
             r.FromAddress.ToLower() == request.WalletAddress.ToLower() &&
             r.Currency.ToLower() == request.Currency.ToLower());
@@ -111,7 +118,7 @@ public class TransactionsService : ITransactionsService
 
     private async Task LogNewTransactionUpdateRequest(UpdateTransactionsCommandRequest request, RequestStatus status)
     {
-        var transactionUpdateRequest = _mapper.Map<TransactionUpdateRequest>(request,
+        TransactionUpdateRequest? transactionUpdateRequest = _mapper.Map<TransactionUpdateRequest>(request,
             o => o.AfterMap((src, dest) => { dest.Status = status; }));
 
         await _transactionsUpdateRequestRepository.AddAsync(transactionUpdateRequest);

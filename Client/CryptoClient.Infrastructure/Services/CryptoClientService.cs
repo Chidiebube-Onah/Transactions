@@ -82,10 +82,9 @@ namespace CryptoClient.Infrastructure.Services
             Transfer
         }
 
-        public CryptoClientService( IMessageQueue messageQueue,  IPublishEndpoint publishEndpoint)
+        public CryptoClientService( )
         {
-            _messageQueue = messageQueue;
-            _publishEndpoint = publishEndpoint;
+          
             _transactionsDataStore = GenerateRandomTransactions(1000);
             _updateTransactionsCommands =
                 GenerateRandomUpdateTransactionsCommands(_transactionsDataStore, 6);
@@ -101,7 +100,7 @@ namespace CryptoClient.Infrastructure.Services
             return transaction;
         }
 
-        public async  Task<UpdateTransactionsCommandRequest> InitiateTransaction()
+        public   UpdateTransactionsCommandRequest InitiateTransaction()
         {
             string walletAddress = _transactionsDataStore[Random.Next(_transactionsDataStore.Count)].FromAddress;
             CryptoTransaction randomTransaction = GenerateRandomTransaction(walletAddress);
@@ -122,16 +121,8 @@ namespace CryptoClient.Infrastructure.Services
                     WalletAddress = walletAddress
                 };
 
-                // await _publishEndpoint.Publish<UpdateTransaction>(new
-                // {
-                //     ClientId = Guid.NewGuid(),
-                //     randomTransaction.TransactionHash,
-                //     randomTransaction.Currency,
-                //     WalletAddress = walletAddress,
-                //     Created = DateTime.UtcNow
-                // });
-
-                await _messageQueue.PublishAsync(command, "UpdateTransactions");
+               
+                
 
                 return command;
             }
@@ -250,7 +241,7 @@ namespace CryptoClient.Infrastructure.Services
 
         private static string GetNetworkChainForCurrency(string currency)
         {
-            if (CurrencyNetworkMap.TryGetValue(currency, out var value))
+            if (CurrencyNetworkMap.TryGetValue(currency, out string? value))
             {
                 return value.ToString();
             }

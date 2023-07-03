@@ -11,9 +11,9 @@ namespace CryptoClient.Infrastructure.Extensions
     {
         public static PagedList<T> GetPagedItems<T>(this IEnumerable<T> query, RequestParameters parameters)
         {
-            var skip = (parameters.PageNumber - 1) * parameters.PageSize;
+            int skip = (parameters.PageNumber - 1) * parameters.PageSize;
 
-            var items = query.Skip(skip).Take(parameters.PageSize).ToList();
+            List<T> items = query.Skip(skip).Take(parameters.PageSize).ToList();
             return new PagedList<T>(items, query.Count(), parameters.PageNumber, parameters.PageSize);
         }
     }

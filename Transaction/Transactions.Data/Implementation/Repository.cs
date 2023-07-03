@@ -1,12 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query;
-using System.Linq.Expressions;
 using Transactions.Data.Extensions;
 using Transactions.Data.Interfaces;
 using Transactions.Model.Dtos.Request;
 using Transactions.Model.Dtos.Response;
 
-namespace SchMgr_FUPRE.Data.Implementation
+namespace Transactions.Data.Implementation
 {
     public class Repository<T> : IRepository<T> where T : class
     {
@@ -116,7 +116,7 @@ namespace SchMgr_FUPRE.Data.Implementation
         {
             try
             {
-                var obj = GetSingleBy(predicate);
+                T? obj = GetSingleBy(predicate);
                 if (obj != null)
                 {
                     _dbSet.Remove(obj);
@@ -147,7 +147,7 @@ namespace SchMgr_FUPRE.Data.Implementation
         {
             try
             {
-                var obj = _dbSet.Find(id);
+                T? obj = _dbSet.Find(id);
                 if (obj != null)
                 {
                     _dbSet.Remove(obj);
@@ -321,9 +321,9 @@ namespace SchMgr_FUPRE.Data.Implementation
 
         public async Task<PagedList<T>> GetPagedItems(RequestParameters parameters, Expression<Func<T, bool>> predicate = null, Func<IQueryable<T>, IIncludableQueryable<T, object>> include = null)
         {
-            var skip = (parameters.PageNumber - 1) * parameters.PageSize;
-            var items = await ConstructQueryable(predicate, parameters.OrderBy.ToLower(), skip, parameters.PageSize, include).ToListAsync();
-            var count = await CountAsync(predicate);
+            int skip = (parameters.PageNumber - 1) * parameters.PageSize;
+            List<T> items = await ConstructQueryable(predicate, parameters.OrderBy?.ToLower(), skip, parameters.PageSize, include).ToListAsync();
+            long count = await CountAsync(predicate);
             return new PagedList<T>(items, count, parameters.PageNumber, parameters.PageSize);
         }
 

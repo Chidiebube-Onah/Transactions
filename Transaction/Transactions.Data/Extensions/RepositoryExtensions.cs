@@ -13,13 +13,13 @@ namespace Transactions.Data.Extensions
     {
         public static async Task RunPendingMigrationsAsync<T>(this T db) where T : DbContext
         {
-            var pendingMigrations = (await db.Database.GetPendingMigrationsAsync()).ToList();
+            List<string> pendingMigrations = (await db.Database.GetPendingMigrationsAsync()).ToList();
 
             if (pendingMigrations.Any())
             {
-                var migrator = db.Database.GetService<IMigrator>();
+                IMigrator migrator = db.Database.GetService<IMigrator>();
 
-                foreach (var targetMigration in pendingMigrations)
+                foreach (string targetMigration in pendingMigrations)
                     await migrator.MigrateAsync(targetMigration);
             }
 
@@ -30,7 +30,7 @@ namespace Transactions.Data.Extensions
             if (string.IsNullOrWhiteSpace(orderByQueryString))
                 return query;
 
-            var orderQuery = OrderQueryBuilder.CreateOrderQuery<T>(orderByQueryString);
+            string orderQuery = OrderQueryBuilder.CreateOrderQuery<T>(orderByQueryString);
 
             if (string.IsNullOrWhiteSpace(orderQuery))
                 return query;
@@ -40,22 +40,22 @@ namespace Transactions.Data.Extensions
 
         public static async Task<PagedList<T>> GetPagedItems<T>(this IQueryable<T> query, RequestParameters parameters,Expression<Func<T, bool>> searchExpression = null)
         {
-            var skip = (parameters.PageNumber - 1) * parameters.PageSize;
+            int skip = (parameters.PageNumber - 1) * parameters.PageSize;
             if (searchExpression != null)
                 query = query.Where(searchExpression);
 
             if (!string.IsNullOrWhiteSpace(parameters.OrderBy)) 
                 query = query.Sort(parameters.OrderBy);
             
-            var items = await query.Skip(skip).Take(parameters.PageSize).ToListAsync();
+            List<T> items = await query.Skip(skip).Take(parameters.PageSize).ToListAsync();
             return new PagedList<T>(items, await query.CountAsync(), parameters.PageNumber, parameters.PageSize);
         }
 
         public static PagedList<T> GetPagedItems<T>(this IEnumerable<T> query, RequestParameters parameters)
         {
-            var skip = (parameters.PageNumber - 1) * parameters.PageSize;
+            int skip = (parameters.PageNumber - 1) * parameters.PageSize;
             
-            var items = query.Skip(skip).Take(parameters.PageSize).ToList();
+            List<T> items = query.Skip(skip).Take(parameters.PageSize).ToList();
             return new PagedList<T>(items, query.Count(), parameters.PageNumber, parameters.PageSize);
         }
     }

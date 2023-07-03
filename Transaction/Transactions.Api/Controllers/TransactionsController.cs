@@ -20,7 +20,7 @@ namespace Transactions.Api.Controllers
         }
 
         [HttpGet(Name = "GetTransactions")]
-        [SwaggerResponse(StatusCodes.Status200OK, Description = "Successful", Type = typeof(PagedResponse<TransactionResponse>))]
+        [SwaggerResponse(StatusCodes.Status200OK, Description = "Fetches a pagination response of all the transactions", Type = typeof(PagedResponse<TransactionResponse>))]
         public async Task<IActionResult> GetTransactions([FromQuery] TransactionRequestParams request)
         {
             PagedResponse<TransactionResponse> response = await _transactionsService.GetTransactions(request);

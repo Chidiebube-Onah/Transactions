@@ -1,21 +1,36 @@
+using CryptoClient.Infrastructure.Model;
 using CryptoClient.Infrastructure.Services;
 using MassTransit;
+using Microsoft.Extensions.Configuration;
 
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddScoped<CryptoClientService>();
+
+builder.Services.Configure<MessageQueueConfig>(builder.Configuration.GetSection($"{nameof(MessageQueueConfig)}"));
+builder.Services.AddSingleton<MessageQueueConfig>();
+builder.Services.AddSingleton<MessageQueueConfig>();
+builder.Services.AddSingleton<CryptoClientService>();
+builder.Services.AddScoped<ITransactionService, TransactionService>();
 builder.Services.AddTransient<IMessageQueue, MessageQueue>();
+
+
+
+
+
+MessageQueueConfig messageConfig = builder.Configuration.GetSection($"{nameof(MessageQueueConfig)}").Get<MessageQueueConfig>();
+
+
 
 builder.Services.AddMassTransit(x =>
 {
     x.AddBus(provider => Bus.Factory.CreateUsingRabbitMq(config =>
     {
-        config.Host(new Uri("rabbitmq://localhost"), h =>
+        config.Host(new Uri(messageConfig.Server), h =>
         {
-            h.Username("guest");
-            h.Password("guest");
+            h.Username(messageConfig.Username);
+            h.Password(messageConfig.Password);
         });
     }));
 });
@@ -26,19 +41,23 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-var app = builder.Build();
+WebApplication app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+
+app.UseSwagger();
+app.UseSwaggerUI();
+
 
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
 app.MapControllers();
+
+builder.Configuration
+    .AddJsonFile("appsettings.json")
+    .AddJsonFile($"appsettings.{app.Environment.EnvironmentName}.json")
+    .AddEnvironmentVariables();
 
 app.Run();
