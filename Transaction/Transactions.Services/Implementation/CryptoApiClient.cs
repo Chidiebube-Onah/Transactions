@@ -20,11 +20,9 @@ public class CryptoApiClient : ICryptoApiClient
 
     public async Task<(TransactionResponse? response, bool isSuccessful)> GetTransactions(string transactionHash, string walletAddress, string currencyType)
     {
-        // Implement the logic to make HTTP requests or interact with the crypto API client library
         // Query the crypto API and retrieve transactions based on the wallet address and currency type
         // Return the retrieved transactions
-          
-        // Example implementation:
+        
        
         string transactionsTemplate = $"?transactionhash={transactionHash}&walletaddress={walletAddress}&currency={currencyType}";
 

@@ -11,8 +11,8 @@ public class MessageQueue : IMessageQueue
         await Task.FromResult(() =>
         {
             Log
-                .ForContext(new PropertyBagEnricher().Add("LoginResponse",
-                    @event, destructureObject: true)).Information("Login Successful");
+                .ForContext(new PropertyBagEnricher().Add(queue,
+                    @event, destructureObject: true)).Information(queue);
         });
     }
 }
